@@ -3,6 +3,7 @@
 #include "SDL.h"
 #include "SDLauxiliary.h"
 #include "TestModel.h"
+#include "montecarlo.h"
 
 using namespace std;
 using glm::vec3;

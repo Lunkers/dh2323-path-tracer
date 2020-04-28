@@ -1,9 +1,18 @@
+#define _USE_MATH_DEFINES
 #include "montecarlo.h"
 #include <glm/gtc/random.hpp>
+#include <glm/glm.hpp>
+#include <math.h>
 
-// define a value for Pi
-#define PI 3.14159265359f
 
+using namespace std;
+
+/*
+	generate a normal vector in the unit hemisphere of a given normal vector
+	@param hitPointNormal normal vector for the intersection point
+
+
+*/
 void RandomUnitVectorInHemisphereOf(vec3 & hitPointNormal, vec3& result){
 	
 	//get random unit vector on a sphere
@@ -23,7 +32,7 @@ void RandomUnitVectorInHemisphereOf(vec3 & hitPointNormal, vec3& result){
 void randomPointOnSphere(vec3 & result)
 {
 	//cgenerate random angle
-	float angle = glm::linearRand(0.0f, 2 * PI);
+	float angle = glm::linearRand(0.0f, 2 * float(M_PI));
 
 	float u = glm::linearRand(-1.0f, 1.0f);
 
