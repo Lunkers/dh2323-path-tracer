@@ -6,6 +6,15 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+
+struct Material {
+	float diffuseExponent;
+	float specularExponent;
+	Material(float diffuseExponent, float specularExponent)
+		: diffuseExponent(diffuseExponent), specularExponent(specularExponent){}
+};
+
+
 // Used to describe a triangular surface:
 class Triangle
 {
@@ -14,12 +23,15 @@ public:
 	glm::vec3 v1;
 	glm::vec3 v2;
 	glm::vec3 normal;
+	glm::vec3 midPoint;
 	glm::vec3 color;
+	Material material;
 
-	Triangle( glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 color )
-		: v0(v0), v1(v1), v2(v2), color(color)
+	Triangle( glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 color, Material material)
+		: v0(v0), v1(v1), v2(v2), color(color),material(material)
 	{
 		ComputeNormal();
+		ComputeMidpoint();
 	}
 
 	void ComputeNormal()
@@ -28,7 +40,17 @@ public:
 		glm::vec3 e2 = v2-v0;
 		normal = glm::normalize( glm::cross( e2, e1 ) );
 	}
+	void ComputeMidpoint() {
+		//midPoint = vec3((v0.x+v1.x+v2.x)/3), ((v0.y + v1.y + v2.y) / 3), (( v0.z+ v1.z+ v2.z) / 3);
+			
+	}
+
 };
+
+
+//vec3 diffuse = diff * lightColor;
+//vec3 ambient = ambientStrength(0.1) * lightColor;
+//vec3 specular = specularStrength(0.5) * spec * lightColor;  
 
 // Loads the Cornell Box. It is scaled to fill the volume:
 // -1 <= x <= +1
@@ -65,25 +87,28 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	vec3 G(L,L,L);
 	vec3 H(0,L,L);
 
+	Material shiny = Material(0.5f, 0.5f); //SKAPA MATERIAL
+	Material matte = Material(0.5f, 0.1f);
+
 	// Floor:
-	triangles.push_back( Triangle( C, B, A, green ) );
-	triangles.push_back( Triangle( C, D, B, green ) );
+	triangles.push_back( Triangle( C, B, A, green, matte ) );
+	triangles.push_back( Triangle( C, D, B, green, matte ) );
 
 	// Left wall
-	triangles.push_back( Triangle( A, E, C, purple ) );
-	triangles.push_back( Triangle( C, E, G, purple ) );
+	triangles.push_back( Triangle( A, E, C, purple, matte ) );
+	triangles.push_back( Triangle( C, E, G, purple, matte ) );
 
 	// Right wall
-	triangles.push_back( Triangle( F, B, D, yellow ) );
-	triangles.push_back( Triangle( H, F, D, yellow ) );
+	triangles.push_back( Triangle( F, B, D, yellow, matte ) );
+	triangles.push_back( Triangle( H, F, D, yellow, matte) );
 
 	// Ceiling
-	triangles.push_back( Triangle( E, F, G, cyan ) );
-	triangles.push_back( Triangle( F, H, G, cyan ) );
+	triangles.push_back( Triangle( E, F, G, cyan, matte) );
+	triangles.push_back( Triangle( F, H, G, cyan, matte) );
 
 	// Back wall
-	triangles.push_back( Triangle( G, D, C, white ) );
-	triangles.push_back( Triangle( G, H, D, white ) );
+	triangles.push_back( Triangle( G, D, C, white, matte) );
+	triangles.push_back( Triangle( G, H, D, white, matte) );
 
 	// ---------------------------------------------------------------------------
 	// Short block
@@ -99,24 +124,24 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec3( 82,165,225);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,red) );
-	triangles.push_back( Triangle(E,F,B,red) );
+	triangles.push_back( Triangle(E,B,A,red,matte) );
+	triangles.push_back( Triangle(E,F,B,red,matte) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,red) );
-	triangles.push_back( Triangle(F,H,D,red) );
+	triangles.push_back( Triangle(F,D,B,red,matte) );
+	triangles.push_back( Triangle(F,H,D,red,matte) );
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,red) );
-	triangles.push_back( Triangle(H,G,C,red) );
+	triangles.push_back( Triangle(H,C,D,red,matte) );
+	triangles.push_back( Triangle(H,G,C,red,matte) );
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,red) );
-	triangles.push_back( Triangle(E,A,C,red) );
+	triangles.push_back( Triangle(G,E,C,red,matte) );
+	triangles.push_back( Triangle(E,A,C,red,matte) );
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,red) );
-	triangles.push_back( Triangle(G,H,F,red) );
+	triangles.push_back( Triangle(G,F,E,red,matte) );
+	triangles.push_back( Triangle(G,H,F,red,matte) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
@@ -132,24 +157,24 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec3(314,330,456);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,blue) );
-	triangles.push_back( Triangle(E,F,B,blue) );
+	triangles.push_back( Triangle(E,B,A,blue, shiny) );
+	triangles.push_back( Triangle(E,F,B,blue, shiny) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,blue) );
-	triangles.push_back( Triangle(F,H,D,blue) );
+	triangles.push_back( Triangle(F,D,B,blue, shiny) );
+	triangles.push_back( Triangle(F,H,D,blue, shiny) );
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,blue) );
-	triangles.push_back( Triangle(H,G,C,blue) );
+	triangles.push_back( Triangle(H,C,D,blue, shiny) );
+	triangles.push_back( Triangle(H,G,C,blue, shiny) );
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,blue) );
-	triangles.push_back( Triangle(E,A,C,blue) );
+	triangles.push_back( Triangle(G,E,C,blue, shiny) );
+	triangles.push_back( Triangle(E,A,C,blue, shiny) );
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,blue) );
-	triangles.push_back( Triangle(G,H,F,blue) );
+	triangles.push_back( Triangle(G,F,E,blue, shiny) );
+	triangles.push_back( Triangle(G,H,F,blue, shiny) );
 
 
 	// ----------------------------------------------
