@@ -17,11 +17,12 @@ struct BoundingBox {
 	BoundingBox() = default;
 
 	BoundingBox(vector<Triangle>& tris) {
-		max = vec3(0,0,0);
-		max = vec3(0,0,0);
+		cout << "constucting bounding box with n_tis = " << tris.size() << endl;
+		max = tris[0].v0;
+		max = tris[0].v0;
 		for (int i = 0; i < tris.size(); ++i) {
 			// set max point
-			if (tris[i].v0.x > max.x) max.x = tris[i].v0.x;
+			if (tris[i].v0.x > max.x)  max.x = tris[i].v0.x;   
 			if (tris[i].v0.y > max.y) max.y = tris[i].v0.y;
 			if (tris[i].v0.z > max.z) max.z = tris[i].v0.z;
 			if (tris[i].v1.x > max.x) max.x = tris[i].v1.x;
@@ -44,7 +45,7 @@ struct BoundingBox {
 		}
 
 		// set mid point
-		midPoint = (max - min) / 2.0f;
+		midPoint = (max + min) / 2.0f;
 		
 	}
 };
@@ -64,7 +65,7 @@ public:
 
 bool isSameTriangle(Triangle& a, Triangle& b);
 
-int getLongestAxis(BoundingBox& bbox);
+int getLongestAxis(BoundingBox& bbox, int depth);
 
 bool boxIntersection(BoundingBox& bbox, const vec3& origin, const vec3& dir);
 

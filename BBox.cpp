@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include "BBox.h"
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 using glm::vec3;
@@ -12,10 +13,13 @@ KdNode::KdNode() = default;
 
 KdNode* KdNode::build(vector<Triangle>& tris, int depth) const{
 	KdNode* node = new KdNode();
+	cout << tris.size() << endl;
 	node->triangles = tris;
 	node->left = NULL;
 	node->right = NULL;
 	node->BBox = BoundingBox(tris);
+	cout << "bounding box: max =(" << node->BBox.max.x << "," << node->BBox.max.y << "," << node->BBox.max.z << ")" <<
+		" min = (" << node->BBox.min.x << "," << node->BBox.min.y << "," << node->BBox.min.z << ")" << endl;
 	// TODO: Write this function
 	if (tris.size() == 0) {
 		return node;
@@ -32,19 +36,32 @@ KdNode* KdNode::build(vector<Triangle>& tris, int depth) const{
 	//initiate vectors for left and right sides of point
 	vector<Triangle> left_tris;
 	vector<Triangle> right_tris;
-
-	int axis = getLongestAxis(node->BBox);
+	// sort along x axis
+	std::sort(tris.begin(), tris.end(), [](Triangle a, Triangle b) -> bool {
+		return a.midPoint.x < b.midPoint.x;
+	});
+	int split = tris.size() / 2;
+	vector<Triangle> left(tris.begin(), tris.begin() + split);
+	vector<Triangle> right(tris.begin() + split, tris.end());
+	cout << left.size() << " triangles in left, " << right.size() << " triangles in right" << endl;
+	int axis = getLongestAxis(node->BBox, depth);
+	cout << "longest axis is "<< axis << endl;
+	float max;
 	// sort triangles to left or right depending on their midpoint relative to the midpoint on the longest axis
 	for (int i = 0; i < tris.size(); i++) {
+		
 		switch (axis) {
 		case 0:
-			node->BBox.midPoint.x >= tris[i].midPoint.x ? right_tris.push_back(tris[i]) : left_tris.push_back(tris[i]);
+			max = glm::max(tris[i].v0.x, glm::max(tris[i].v1.x, tris[i].v2.x));
+			node->BBox.midPoint.x >= max? right_tris.push_back(tris[i]) : left_tris.push_back(tris[i]);
 			break;
 		case 1:
-			node->BBox.midPoint.y >= tris[i].midPoint.y ? right_tris.push_back(tris[i]) : left_tris.push_back(tris[i]);
+			 max = glm::max(tris[i].v0.y, glm::max(tris[i].v1.y, tris[i].v2.y));
+			node->BBox.midPoint.y >= max ? right_tris.push_back(tris[i]) : left_tris.push_back(tris[i]);
 			break;
 		case 2:
-			node->BBox.midPoint.z >= tris[i].midPoint.z ? right_tris.push_back(tris[i]) : left_tris.push_back(tris[i]);
+			max = glm::max(tris[i].v0.z, glm::max(tris[i].v1.z, tris[i].v2.z));
+			node->BBox.midPoint.z >= max ? right_tris.push_back(tris[i]) : left_tris.push_back(tris[i]);
 			break;
 		}
 	}
@@ -69,9 +86,9 @@ KdNode* KdNode::build(vector<Triangle>& tris, int depth) const{
 		}
 	}
 
-	if ((float)matches / left_tris.size() < 0.5 && (float)matches / right_tris.size() < 0.5) {
+	if (float(matches) /left_tris.size() < 0.5 && (float)matches / right_tris.size() < 0.5) {
 		//less than 50% match, subdivide the tree and build down both sides
-		cout << "subdividing tree with " << endl;
+		cout << "subdividing tree with " << l_s << " triangles in left tree, and " << r_s << " in right tree"<< endl;
 		node->left = build(left_tris, depth + 1);
 		node->right = build(right_tris, depth + 1);
 	}
@@ -139,20 +156,20 @@ bool boxIntersection(BoundingBox& bbox, const vec3& origin, const vec3& dir) {
 }
 
 
-int getLongestAxis(BoundingBox& bbox) {
+int getLongestAxis(BoundingBox& bbox, int depth) {
 	float dx = bbox.max.x - bbox.min.x;
 	float dy = bbox.max.y - bbox.min.y;
 	float dz = bbox.max.z - bbox.min.z;
-
-	if (dy >= dz && dz > dx) {
+	cout << "dx: " << dx << " dy: " << dy << " dz: " << dz << endl;
+	if (dy >= dz && dy > dx) {
 		return 1;
 	}
-	if (dz >= dy && dy > dx) {
+	if (dz >= dy && dz > dx) {
 		return 2;
 	}
 
 
-	return 0;
+	return depth % 3;
 }
 
 bool isSameTriangle(Triangle& a, Triangle& b) {

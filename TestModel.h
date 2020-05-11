@@ -199,6 +199,7 @@ static void LoadTestModel( std::vector<Triangle>& triangles )
 		triangles[i].v2.y *= -1;
 
 		triangles[i].ComputeNormal();
+		triangles[i].ComputeMidpoint();
 	}
 }
 
