@@ -41,7 +41,7 @@ public:
 		normal = glm::normalize( glm::cross( e2, e1 ) );
 	}
 	void ComputeMidpoint() {
-		//midPoint = vec3((v0.x+v1.x+v2.x)/3), ((v0.y + v1.y + v2.y) / 3), (( v0.z+ v1.z+ v2.z) / 3);
+		midPoint = glm::vec3((v0.x+v1.x+v2.x)/3), ((v0.y + v1.y + v2.y) / 3), (( v0.z+ v1.z+ v2.z) / 3);
 			
 	}
 
@@ -56,7 +56,7 @@ public:
 // -1 <= x <= +1
 // -1 <= y <= +1
 // -1 <= z <= +1
-void LoadTestModel( std::vector<Triangle>& triangles )
+static void LoadTestModel( std::vector<Triangle>& triangles )
 {
 	using glm::vec3;
 
@@ -201,5 +201,6 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 		triangles[i].ComputeNormal();
 	}
 }
+
 
 #endif

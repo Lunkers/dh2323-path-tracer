@@ -1,11 +1,14 @@
 #include "TestModel.h"
 #include <glm/glm.hpp>
 #include "BBox.h"
+#include <iostream>
 
 using namespace std;
 using glm::vec3;
 using glm::mat3;
 
+
+KdNode::KdNode() = default;
 
 KdNode* KdNode::build(vector<Triangle>& tris, int depth) const{
 	KdNode* node = new KdNode();
@@ -13,7 +16,6 @@ KdNode* KdNode::build(vector<Triangle>& tris, int depth) const{
 	node->left = NULL;
 	node->right = NULL;
 	node->BBox = BoundingBox(tris);
-
 	// TODO: Write this function
 	if (tris.size() == 0) {
 		return node;
@@ -69,6 +71,7 @@ KdNode* KdNode::build(vector<Triangle>& tris, int depth) const{
 
 	if ((float)matches / left_tris.size() < 0.5 && (float)matches / right_tris.size() < 0.5) {
 		//less than 50% match, subdivide the tree and build down both sides
+		cout << "subdividing tree with " << endl;
 		node->left = build(left_tris, depth + 1);
 		node->right = build(right_tris, depth + 1);
 	}
@@ -82,72 +85,23 @@ KdNode* KdNode::build(vector<Triangle>& tris, int depth) const{
 	return node;
 }
 
-bool hit(KdNode* node, const vec3& origin, vec3& dir, Intersection& closestIntersection) {
-	 //recursive search for intersections
-	if (boxIntersection(node->BBox, origin, dir)) {
-		vec3 normal;
-		float m = std::numeric_limits<float>::max();
-		float t, u, v;
-		vec3 v0, v1, v2, e1, e2, b, x;
-		mat3 A(float(-1) * dir, e1, e2);
 
-		//if either child still has triangles, go down both sides recursively
-		if (node->left->triangles.size() > 0 || node->right->triangles.size() > 0) {
-			bool hitLeft = hit(node->left, origin, dir, closestIntersection);
-			bool hitRight = hit(node->right, origin, dir, closestIntersection);
-			return hitLeft || hitRight;
-		}
-
-		else {
-			// we have reached a leaf
-			for (int i = 0; i < node->triangles.size(); i++) {
-				//check for intersections here
-				
-				v0 = node->triangles[i].v0;
-				v1 = node->triangles[i].v1;
-				v2 = node->triangles[i].v2;
-				e1 = v1 - v0;
-				e2 = v2 - v0;
-				b = origin - v0;
-				A = mat3(-dir, e1, e2);
-				x = glm::inverse(A) * b;
-				t = x[0];
-				u = x[1];
-				v = x[2];
-				if (u >= 0 && v >= 0 && u + v <= 1 && t >= 0) {
-
-					vec3 intPoint = v0 + u * e1 + v * e2;
-					float dist = glm::distance(intPoint, origin);
-					if (dist < m) {
-						m = dist;
-						closestIntersection = Intersection{ intPoint, dist, i };
-					}
-				}
-			}
-
-			if (m < std::numeric_limits<float>::max()) {
-				return true;
-			}
-			return false;
-		}
-	}
-	return false;
-
-}
 
 bool boxIntersection(BoundingBox& bbox, const vec3& origin, const vec3& dir) {
 	// check if a ray intersects a box
 	// modified from: 
 	// https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
-	
+	//cout << "declaring intersection variables" << endl;
+	//cout << bbox.max.x <<  bbox.min.x << bbox.max.x - bbox.min.x << endl;
 	float tmin, tmax, tymin, tymax, tzmin, tzmax;
-	float dx = bbox.max.x - bbox.min.x;
-	float dy = bbox.max.y - bbox.min.y;
-	float dz = bbox.max.z - bbox.min.z;
-	tmin = (bbox.min.x - origin.x) / dx;
-	tmax = (bbox.max.x - origin.x) / dx;
-	tymin = (bbox.min.y - origin.y) / dy;
-	tymax = (bbox.max.y - origin.y) / dy;
+
+	
+	//cout << "dx: " << dx << "dy: " << dy << "dz: " << dz <<" declared" << endl;
+	
+	tmin = (bbox.min.x - origin.x) / dir.x;
+	tmax = (bbox.max.x - origin.x) / dir.x;
+	tymin = (bbox.min.y - origin.y) / dir.y;
+	tymax = (bbox.max.y - origin.y) / dir.y;
 
 	if (tmin > tmax) swap(tmin, tmax);
 	if (tymin > tymax) swap(tymin, tymax);
@@ -164,8 +118,8 @@ bool boxIntersection(BoundingBox& bbox, const vec3& origin, const vec3& dir) {
 		tmax = tymax;
 	}
 
-	tzmin = (bbox.min.z - origin.z);
-	tzmax = (bbox.max.z - origin.z);
+	tzmin = (bbox.min.z - origin.z) / dir.z;
+	tzmax = (bbox.max.z - origin.z) / dir.z;
 
 	if (tzmin > tzmax) swap(tzmin, tzmax);
 
@@ -186,7 +140,18 @@ bool boxIntersection(BoundingBox& bbox, const vec3& origin, const vec3& dir) {
 
 
 int getLongestAxis(BoundingBox& bbox) {
-	//find longest axis of a bounding box	
+	float dx = bbox.max.x - bbox.min.x;
+	float dy = bbox.max.y - bbox.min.y;
+	float dz = bbox.max.z - bbox.min.z;
+
+	if (dy >= dz && dz > dx) {
+		return 1;
+	}
+	if (dz >= dy && dy > dx) {
+		return 2;
+	}
+
+
 	return 0;
 }
 

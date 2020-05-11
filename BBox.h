@@ -1,25 +1,24 @@
 #pragma once
 #include "TestModel.h"
 #include <glm/glm.hpp>
+#include <iostream>
 using glm::vec3;
 
 
 using namespace std;
 
-struct Intersection {
-	vec3 position;
-	float distance;
-	int triangleIndex;
-};
+
 struct BoundingBox {
 
 	vec3 max;
 	vec3 min;
 	vec3 midPoint;
 
+	BoundingBox() = default;
+
 	BoundingBox(vector<Triangle>& tris) {
-		max = tris[0].v0;
-		max = tris[0].v0;
+		max = vec3(0,0,0);
+		max = vec3(0,0,0);
 		for (int i = 0; i < tris.size(); ++i) {
 			// set max point
 			if (tris[i].v0.x > max.x) max.x = tris[i].v0.x;
@@ -45,10 +44,8 @@ struct BoundingBox {
 		}
 
 		// set mid point
-		midPoint = vec3(0, 0, 0);
-		midPoint.x = (max.x - min.x) / 2;
-		midPoint.y = (max.y - min.y) / 2;
-		midPoint.z = (max.z - min.z) / 2;
+		midPoint = (max - min) / 2.0f;
+		
 	}
 };
 
@@ -57,7 +54,7 @@ public:
 	BoundingBox BBox;
 	KdNode* left;
 	KdNode* right;
-	vector<Triangle>& triangles;
+	vector<Triangle> triangles;
 
 	KdNode();
 
@@ -66,10 +63,6 @@ public:
 };
 
 bool isSameTriangle(Triangle& a, Triangle& b);
-
-bool hit(KdNode* node, const vec3& origin, vec3& dir, Intersection& closestIntersection);
-
-
 
 int getLongestAxis(BoundingBox& bbox);
 
