@@ -157,24 +157,24 @@ static void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec3(314,330,456);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,blue, shiny) );
-	triangles.push_back( Triangle(E,F,B,blue, shiny) );
+	triangles.push_back( Triangle(E,B,A,blue, matte) );
+	triangles.push_back( Triangle(E,F,B,blue, matte) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,blue, shiny) );
-	triangles.push_back( Triangle(F,H,D,blue, shiny) );
+	triangles.push_back( Triangle(F,D,B,blue, matte) );
+	triangles.push_back( Triangle(F,H,D,blue, matte) );
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,blue, shiny) );
-	triangles.push_back( Triangle(H,G,C,blue, shiny) );
+	triangles.push_back( Triangle(H,C,D,blue, matte) );
+	triangles.push_back( Triangle(H,G,C,blue, matte) );
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,blue, shiny) );
-	triangles.push_back( Triangle(E,A,C,blue, shiny) );
+	triangles.push_back( Triangle(G,E,C,blue, matte) );
+	triangles.push_back( Triangle(E,A,C,blue, matte) );
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,blue, shiny) );
-	triangles.push_back( Triangle(G,H,F,blue, shiny) );
+	triangles.push_back( Triangle(G,F,E,blue, matte) );
+	triangles.push_back( Triangle(G,H,F,blue, matte) );
 
 
 	// ----------------------------------------------

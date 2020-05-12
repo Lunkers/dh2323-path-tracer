@@ -6,7 +6,7 @@
 #include "TestModel.h"
 #include "montecarlo.h"
 #include <math.h>
-#include "BBox.h"
+#include <thread>
 
 using namespace std;
 using glm::vec3;
@@ -16,14 +16,16 @@ struct Intersection {
 	vec3 position;
 	float distance;
 	int triangleIndex;
-	KdNode* node;
 };
 
 // ----------------------------------------------------------------------------
 // GLOBAL VARIABLES
 
-const int SCREEN_WIDTH = 500;
-const int SCREEN_HEIGHT = 500;
+int NUM_THREADS = 10;
+
+// NB: These values MUST be a multiple of NUM_threads, otherwise the threading won't work!
+const int SCREEN_WIDTH = 300;
+const int SCREEN_HEIGHT = 300;
 SDL_Surface* screen;
 int t;
 vector<Triangle> triangles;
@@ -41,13 +43,12 @@ vec3 lightPos(0, -0.5, -0.7);
 vec3 lightColor = 14.f * vec3(1, 1, 1);
 vec3 indirectLight = 0.5f * vec3(1, 1, 1);
 
-KdNode* kd;
-
-bool hit(KdNode* node, const vec3& origin, vec3& dir, Intersection& closestIntersection);
 
 int maxCount = 3;
-int numSamples = 25;
+int numSamples = 100;
 
+
+float rendered[SCREEN_HEIGHT][SCREEN_WIDTH][3];
 // ----------------------------------------------------------------------------
 // FUNCTIONS
 
@@ -56,16 +57,15 @@ void Draw();
 bool ClosestIntersection(vec3 start, vec3 dir, const vector<Triangle>& triangles, Intersection& closestIntersection);
 vec3 DirectLight(Intersection& i);
 vec3 TracePath(vec3 startPoint, vec3 direction, int depthCount);
+void threadDraw(int x, int y);
 
 int main(int argc, char* argv[])
 {
 	//load cornell box model
 	LoadTestModel(triangles);
-	kd = new KdNode();
+	//kd = new KdNode();
 	cout << triangles.size() << endl;
-	kd = kd->build(triangles, 1);
-	cout << "finished building tree" << endl;
-	cout << triangles.size() << endl;
+	//kd = kd->build(triangles, 1);
 	screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT);
 	
 
@@ -142,29 +142,36 @@ void Draw()
 
 	for (int y = 0; y < SCREEN_HEIGHT; ++y)
 	{
-		for (int x = 0; x < SCREEN_WIDTH; ++x)
+		for (int x = 0; x < SCREEN_WIDTH; x+=NUM_THREADS)
 		{
-			Intersection intersection;
-			vec3 color;
-			vec3 d(float(x) - (SCREEN_WIDTH / 2), float(y) - (SCREEN_HEIGHT / 2), focalLength); //vår ray
-			d = R * d;
-			for (int i = 0; i < numSamples; ++i) {
-				color += TracePath(cameraPos, d, 0); //DO PATH TRACE YO
+			//initialize threads
+			vector<thread*> threads;
+			for (int k = 0; k < NUM_THREADS; k++) {
+				//start rendering thread
+				threads.push_back(new thread(threadDraw, x + k, y));
 			}
-			color /= numSamples;
-			/*if (ClosestIntersection(cameraPos, d, triangles, intersection)) {
-				color = DirectLight(intersection);
-				vec3 indirect = triangles[intersection.triangleIndex].color * indirectLight;
-				color = color + indirect;
+
+			// block main thread from doing anything until all rays are finished
+			for (int l = 0; l < NUM_THREADS; l++) {
+				// wait for thread to finish
+				threads[l]->join();
+				
+				//remove the thread
+				delete(threads[l]);
 			}
-			else {
-				color = vec3(float(0), float(0), float(0));
-			}*/
 
-
+			
+		}
+		cout << "finished row " << y << endl;
+		// image has finished rendering, put on screen
+		
+	}
+	cout << "finished rendering, putting on screen!" << endl;
+	for (int y = 0; y < SCREEN_HEIGHT; ++y) {
+		for (int x = 0; x < SCREEN_WIDTH; ++x) {
+			vec3 color(rendered[y][x][0], rendered[y][x][1], rendered[y][x][2]);
 			PutPixelSDL(screen, x, y, color);
 		}
-		//cout << "finished row " << y << endl;
 	}
 
 	if (SDL_MUSTLOCK(screen))
@@ -173,13 +180,29 @@ void Draw()
 	SDL_UpdateRect(screen, 0, 0, 0, 0);
 }
 
+// multi-threaded drawing
+void threadDraw(int x, int y) {
+	Intersection intersection;
+	vec3 color;
+	vec3 d(float(x) - (SCREEN_WIDTH / 2), float(y) - (SCREEN_HEIGHT / 2), focalLength); //vår ray
+	d = R * d;
+	for (int i = 0; i < numSamples; ++i) {
+		color += TracePath(cameraPos, d, 0); //DO PATH TRACE YO
+	}
+	color /= numSamples;
+	rendered[y][x][0] = color.r;
+	rendered[y][x][1] = color.g;
+	rendered[y][x][2] = color.b;
+	
+}
+
 vec3 TracePath(vec3 startPoint, vec3 direction, int depthCount) {
 
 	if (depthCount >= maxCount) {
 		return vec3(0, 0, 0); //MÅLA SVART
 	}
 	Intersection intersection;
-	bool hitSomething = hit(kd, startPoint, direction, intersection);
+	bool hitSomething = ClosestIntersection(startPoint, direction, triangles, intersection);
 	if (hitSomething == false) {
 		return vec3(0, 0, 0); //MÅLA SVART SLÅ IHOP DESSA TVÅ???????
 	}
@@ -249,7 +272,7 @@ bool ClosestIntersection(vec3 start, vec3 dir, const vector<Triangle>& triangles
 
 vec3 DirectLight(Intersection& i) {
 	Intersection intersection;
-	Triangle t = i.node ->triangles[i.triangleIndex];
+	Triangle t =triangles[i.triangleIndex];
 	vec3 n = t.normal;
 	vec3 r = lightPos - i.position;
 	vec3 rHat = glm::normalize(r);
@@ -257,7 +280,7 @@ vec3 DirectLight(Intersection& i) {
 	//move origin sligthtly along normal to avoid intersecting with the triangle itself
 	vec3 shadowOrig = glm::length(rHat * n) < 0.f ? i.position - n * 0.001f : i.position + n * 0.001f;
 	
-	if (hit(kd, shadowOrig, rHat, intersection)) {
+	if (ClosestIntersection(shadowOrig,rHat, triangles, intersection) ) {
 		if (intersection.distance < glm::length(r)) {
 			D = vec3(0, 0, 0);
 			return D;
@@ -270,74 +293,4 @@ vec3 DirectLight(Intersection& i) {
 	
 
 	return D;
-}
-bool hit(KdNode* node, const vec3& origin, vec3& dir, Intersection& closestIntersection) {
-	//recursive search for intersections
-	//cout << "checking with bounding box" << endl;
-	if (boxIntersection(node->BBox, origin, dir)) {
-		//cout << "intersected lowest layer bounding box" << endl;
-		
-		//if either child still has triangles, go down both sides recursively
-		if (node->left->triangles.size() > 0 || node->right->triangles.size() > 0) {
-			Intersection leftIntersection;
-			Intersection rightIntersection;
-			bool hitLeft = hit(node->left, origin, dir, leftIntersection);
-			bool hitRight = hit(node->right, origin, dir, rightIntersection);
-			if (hitLeft && !hitRight) {
-				closestIntersection = leftIntersection;
-				return true;
-			}
-			if (hitRight && !hitLeft) {
-				closestIntersection = rightIntersection;
-				return true;
-			}
-			if (hitRight && hitLeft) {
-				rightIntersection.distance < leftIntersection.distance ? closestIntersection = rightIntersection : closestIntersection = leftIntersection;
-				return true;
-			}
-			return false;
-		}
-
-		else {
-			vec3 normal;
-			float m = std::numeric_limits<float>::max();
-			float t, u, v;
-			vec3 v0, v1, v2, e1, e2, b, x;
-			mat3 A(float(-1) * dir, e1, e2);
-
-			// we have reached a leaf
-			for (int i = 0; i < node->triangles.size(); i++) {
-				//check for intersections here
-
-				v0 = node->triangles[i].v0;
-				v1 = node->triangles[i].v1;
-				v2 = node->triangles[i].v2;
-				e1 = v1 - v0;
-				e2 = v2 - v0;
-				b = origin - v0;
-				A = mat3(-dir, e1, e2);
-				x = glm::inverse(A) * b;
-				t = x[0];
-				u = x[1];
-				v = x[2];
-				if (u >= 0 && v >= 0 && u + v <= 1 && t >= 0) {
-
-					vec3 intPoint = v0 + u * e1 + v * e2;
-					float dist = glm::distance(intPoint, origin);
-					if (dist < m) {
-						m = dist;
-						closestIntersection = Intersection{ intPoint, dist, i, node};
-					}
-				}
-			}
-
-			if (m < std::numeric_limits<float>::max()) {
-				return true;
-			}
-			return false;
-		}
-	}
-	
-	return false;
-
 }
