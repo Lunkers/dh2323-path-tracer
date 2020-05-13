@@ -6,13 +6,14 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-
+/*
 struct Material {
 	float diffuseExponent;
 	float specularExponent;
 	Material(float diffuseExponent, float specularExponent)
 		: diffuseExponent(diffuseExponent), specularExponent(specularExponent){}
 };
+*/
 
 
 // Used to describe a triangular surface:
@@ -25,10 +26,11 @@ public:
 	glm::vec3 normal;
 	glm::vec3 midPoint;
 	glm::vec3 color;
-	Material material;
+	glm::vec3 emittance;
+	float specularExponent;
 
-	Triangle( glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 color, Material material)
-		: v0(v0), v1(v1), v2(v2), color(color),material(material)
+	Triangle( glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 color, glm::vec3 emittance)
+		: v0(v0), v1(v1), v2(v2), color(color), emittance(emittance)
 	{
 		ComputeNormal();
 		ComputeMidpoint();
@@ -76,7 +78,7 @@ static void LoadTestModel( std::vector<Triangle>& triangles )
 	// Room
 
 	float L = 555;			// Length of Cornell Box side.
-
+	float Light = 250;
 	vec3 A(L,0,0);
 	vec3 B(0,0,0);
 	vec3 C(L,0,L);
@@ -87,28 +89,32 @@ static void LoadTestModel( std::vector<Triangle>& triangles )
 	vec3 G(L,L,L);
 	vec3 H(0,L,L);
 
-	Material shiny = Material(0.5f, 0.5f); //SKAPA MATERIAL
-	Material matte = Material(0.5f, 0.1f);
+	
+
+	vec3 light = vec3(1,1,1)*10.f; //Emittance
+	vec3 noEmittance (0,0,0);
+
+
 
 	// Floor:
-	triangles.push_back( Triangle( C, B, A, green, matte ) );
-	triangles.push_back( Triangle( C, D, B, green, matte ) );
+	triangles.push_back( Triangle( C, B, A, green, noEmittance) );
+	triangles.push_back( Triangle( C, D, B, green, noEmittance) );
 
 	// Left wall
-	triangles.push_back( Triangle( A, E, C, purple, matte ) );
-	triangles.push_back( Triangle( C, E, G, purple, matte ) );
+	triangles.push_back( Triangle( A, E, C, purple, noEmittance) );
+	triangles.push_back( Triangle( C, E, G, purple, noEmittance) );
 
 	// Right wall
-	triangles.push_back( Triangle( F, B, D, yellow, matte ) );
-	triangles.push_back( Triangle( H, F, D, yellow, matte) );
+	triangles.push_back( Triangle( F, B, D, yellow, noEmittance) );
+	triangles.push_back( Triangle( H, F, D, yellow, noEmittance) );
 
 	// Ceiling
-	triangles.push_back( Triangle( E, F, G, cyan, matte) );
-	triangles.push_back( Triangle( F, H, G, cyan, matte) );
+	triangles.push_back( Triangle( E, F, G, cyan, noEmittance) );
+	triangles.push_back( Triangle( F, H, G, cyan, noEmittance) );
 
 	// Back wall
-	triangles.push_back( Triangle( G, D, C, white, matte) );
-	triangles.push_back( Triangle( G, H, D, white, matte) );
+	triangles.push_back( Triangle( G, D, C, white, noEmittance) );
+	triangles.push_back( Triangle( G, H, D, white, noEmittance) );
 
 	// ---------------------------------------------------------------------------
 	// Short block
@@ -124,24 +130,24 @@ static void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec3( 82,165,225);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,red,matte) );
-	triangles.push_back( Triangle(E,F,B,red,matte) );
+	triangles.push_back( Triangle(E,B,A,red, noEmittance) );
+	triangles.push_back( Triangle(E,F,B,red, noEmittance) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,red,matte) );
-	triangles.push_back( Triangle(F,H,D,red,matte) );
+	triangles.push_back( Triangle(F,D,B,red, noEmittance) );
+	triangles.push_back( Triangle(F,H,D,red, noEmittance) );
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,red,matte) );
-	triangles.push_back( Triangle(H,G,C,red,matte) );
+	triangles.push_back( Triangle(H,C,D,red, noEmittance) );
+	triangles.push_back( Triangle(H,G,C,red, noEmittance) );
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,red,matte) );
-	triangles.push_back( Triangle(E,A,C,red,matte) );
+	triangles.push_back( Triangle(G,E,C,red, noEmittance) );
+	triangles.push_back( Triangle(E,A,C,red, noEmittance) );
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,red,matte) );
-	triangles.push_back( Triangle(G,H,F,red,matte) );
+	triangles.push_back( Triangle(G,F,E,red, noEmittance) );
+	triangles.push_back( Triangle(G,H,F,red, noEmittance) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
@@ -157,25 +163,57 @@ static void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec3(314,330,456);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,blue, matte) );
-	triangles.push_back( Triangle(E,F,B,blue, matte) );
+
+	triangles.push_back( Triangle(E,B,A,blue, noEmittance) );
+	triangles.push_back( Triangle(E,F,B,blue, noEmittance) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,blue, matte) );
-	triangles.push_back( Triangle(F,H,D,blue, matte) );
+	triangles.push_back( Triangle(F,D,B,blue, noEmittance) );
+	triangles.push_back( Triangle(F,H,D,blue, noEmittance) );
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,blue, matte) );
-	triangles.push_back( Triangle(H,G,C,blue, matte) );
+	triangles.push_back( Triangle(H,C,D,blue, noEmittance) );
+	triangles.push_back( Triangle(H,G,C,blue, noEmittance) );
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,blue, matte) );
-	triangles.push_back( Triangle(E,A,C,blue, matte) );
+	triangles.push_back( Triangle(G,E,C,blue, noEmittance) );
+	triangles.push_back( Triangle(E,A,C,blue, noEmittance) );
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,blue, matte) );
-	triangles.push_back( Triangle(G,H,F,blue, matte) );
+	triangles.push_back( Triangle(G,F,E,blue, noEmittance) );
+	triangles.push_back( Triangle(G,H,F,blue, noEmittance) );
 
+
+	triangles.push_back( Triangle(E,B,A,blue, noEmittance) );
+	triangles.push_back( Triangle(E,F,B,blue, noEmittance) );
+
+	// Front
+	triangles.push_back( Triangle(F,D,B,blue, noEmittance) );
+	triangles.push_back( Triangle(F,H,D,blue, noEmittance) );
+
+	// BACK
+	triangles.push_back( Triangle(H,C,D,blue, noEmittance) );
+	triangles.push_back( Triangle(H,G,C,blue, noEmittance) );
+
+	// LEFT
+	triangles.push_back( Triangle(G,E,C,blue, noEmittance) );
+	triangles.push_back( Triangle(E,A,C,blue, noEmittance) );
+
+	// TOP
+	triangles.push_back( Triangle(G,F,E,blue, noEmittance) );
+	triangles.push_back( Triangle(G,H,F,blue, noEmittance) );
+
+	//------------------------------------------------
+	//LightSource:
+	E = vec3(L/2+Light/2,L-1,L/2-Light/2);
+	F = vec3(L/2-Light/2,L-1,L/2-Light/2);
+	G = vec3(L/2+Light/2,L-1,L/2+Light/2);
+	H = vec3(L/2-Light/2,L-1,L/2+Light/2);
+	
+
+
+	triangles.push_back( Triangle(E,F,G,vec3(1,1,1), light ));
+	triangles.push_back( Triangle(F,H,G,vec3(1,1,1), light ));
 
 	// ----------------------------------------------
 	// Scale to the volume [-1,1]^3

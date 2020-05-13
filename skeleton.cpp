@@ -24,8 +24,8 @@ struct Intersection {
 int NUM_THREADS = 10;
 
 // NB: These values MUST be a multiple of NUM_threads, otherwise the threading won't work!
-const int SCREEN_WIDTH = 300;
-const int SCREEN_HEIGHT = 300;
+const int SCREEN_WIDTH = 200;
+const int SCREEN_HEIGHT = 200;
 SDL_Surface* screen;
 int t;
 vector<Triangle> triangles;
@@ -45,10 +45,11 @@ vec3 indirectLight = 0.5f * vec3(1, 1, 1);
 
 
 int maxCount = 3;
-int numSamples = 100;
+int numSamples = 1000;
 
 
 float rendered[SCREEN_HEIGHT][SCREEN_WIDTH][3];
+float int_eps = 0.001;
 // ----------------------------------------------------------------------------
 // FUNCTIONS
 
@@ -210,27 +211,29 @@ vec3 TracePath(vec3 startPoint, vec3 direction, int depthCount) {
 	vec3 newRay;
 
 	//calculate direct the light emitted from this point
-	vec3 emittance = DirectLight(intersection);
-	//cout << "the light is " << emittance.r << emittance.g <<  emittance.b << endl;
+
 	const float p = 1 / (2 * M_PI);
 
 	Triangle triangle = triangles[intersection.triangleIndex];
+
+	vec3 emittance = triangle.emittance; //såhär?
+
 	vec3 normalWhereObjectWasHit = triangle.normal;
 
 	RandomUnitVectorInHemisphereOf(normalWhereObjectWasHit, newRay);
 	//float spec = pow(glm::max(glm::dot(direction, newRay), 0.0f), 32);
 	// ObjectFactoryContainerFactory NewObjectFactoryContainerFactory = new ObjectFactoryContainer();
 	float cos_theta = glm::dot(newRay, normalWhereObjectWasHit);
-	float BRDF = triangle.material.specularExponent; //välj vettigt värde
+	vec3 BRDF = 2 * cos_theta * triangle.color; //välj vettigt värde
 
 
 
 	// Recursively trace reflected light sources.
-	vec3 incoming = TracePath(intersection.position, newRay, depthCount + 1);
+	vec3 incoming = TracePath(intersection.position + int_eps * newRay, newRay, depthCount + 1);
 
 
 	// Apply the Rendering Equation here.
-	return emittance + (BRDF * incoming * cos_theta / p);
+	return emittance + BRDF * incoming ;
 }
 
 
