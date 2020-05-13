@@ -1,11 +1,14 @@
 #define _USE_MATH_DEFINES
 #include "montecarlo.h"
-#include <glm/gtc/random.hpp>
 #include <glm/glm.hpp>
 #include <math.h>
+#include <random>
 
 
 using namespace std;
+
+default_random_engine factory;
+normal_distribution<float> dist(0.0, 1.0);
 
 /*
 	generate a normal vector in the unit hemisphere of a given normal vector
@@ -16,32 +19,31 @@ using namespace std;
 void RandomUnitVectorInHemisphereOf(vec3 & hitPointNormal, vec3& result){
 	
 	//get random unit vector on a sphere
-	randomPointOnSphere(result);
+	randomPointOnSphere(result, hitPointNormal);
 
-	//make sure it's in the same hemisphere as the normal
-	result = result * glm::sign(glm::dot(hitPointNormal, result));
 }
 
 
 /*
 	Generate random values on a sphere
-	Source: http://mathworld.wolfram.com/SpherePointPicking.html
+	Samples a random value from a normal distribution on each axis, returns a normal vector
 
+	@param normal: normal vector from point
 	@param result: empty vector to put results in
 */
-void randomPointOnSphere(vec3 & result)
+void randomPointOnSphere(vec3 & result, vec3& normal)
 {
-	//cgenerate random angle
-	float angle = glm::linearRand(0.0f, 2 * float(M_PI));
 
-	float u = glm::linearRand(-1.0f, 1.0f);
+	result.x = dist(factory);
+	result.y = dist(factory);
+	result.z = dist(factory);
 
-	float u_sqr = u * u;
-	float oneMinusUsqr = glm::sqrt(1.0f - u_sqr);
+	result = glm::normalize(result);
 
-	result.x = oneMinusUsqr * glm::cos(angle);
-	result.y = oneMinusUsqr * glm::sin(angle);
-	result.z = u;
+	if (glm::dot(normal, result) < 0) {
+		result = -result;
+	}
+
 }
 
 

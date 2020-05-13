@@ -78,7 +78,7 @@ static void LoadTestModel( std::vector<Triangle>& triangles )
 	// Room
 
 	float L = 555;			// Length of Cornell Box side.
-	float Light = 250;
+	float Light = 400;
 	vec3 A(L,0,0);
 	vec3 B(0,0,0);
 	vec3 C(L,0,L);

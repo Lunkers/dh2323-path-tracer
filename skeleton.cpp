@@ -24,8 +24,8 @@ struct Intersection {
 int NUM_THREADS = 10;
 
 // NB: These values MUST be a multiple of NUM_threads, otherwise the threading won't work!
-const int SCREEN_WIDTH = 200;
-const int SCREEN_HEIGHT = 200;
+const int SCREEN_WIDTH = 300;
+const int SCREEN_HEIGHT = 300;
 SDL_Surface* screen;
 int t;
 vector<Triangle> triangles;
@@ -45,7 +45,7 @@ vec3 indirectLight = 0.5f * vec3(1, 1, 1);
 
 
 int maxCount = 3;
-int numSamples = 1000;
+int numSamples = 200;
 
 
 float rendered[SCREEN_HEIGHT][SCREEN_WIDTH][3];
@@ -207,6 +207,7 @@ vec3 TracePath(vec3 startPoint, vec3 direction, int depthCount) {
 	if (hitSomething == false) {
 		return vec3(0, 0, 0); //MÅLA SVART SLÅ IHOP DESSA TVÅ???????
 	}
+	//cout << intersection.distance << endl;
 
 	vec3 newRay;
 
@@ -221,28 +222,30 @@ vec3 TracePath(vec3 startPoint, vec3 direction, int depthCount) {
 	vec3 normalWhereObjectWasHit = triangle.normal;
 
 	RandomUnitVectorInHemisphereOf(normalWhereObjectWasHit, newRay);
-	//float spec = pow(glm::max(glm::dot(direction, newRay), 0.0f), 32);
-	// ObjectFactoryContainerFactory NewObjectFactoryContainerFactory = new ObjectFactoryContainer();
 	float cos_theta = glm::dot(newRay, normalWhereObjectWasHit);
-	vec3 BRDF = 2 * cos_theta * triangle.color; //välj vettigt värde
+
+	vec3 BRDF = triangle.color / float(M_PI); //välj vettigt värde
 
 
 
+	//insert code for reflective surfaces
+	vec3 indirect_diff(0, 0, 0);
 	// Recursively trace reflected light sources.
 	vec3 incoming = TracePath(intersection.position + int_eps * newRay, newRay, depthCount + 1);
 
 
 	// Apply the Rendering Equation here.
-	return emittance + BRDF * incoming ;
+	return emittance + (BRDF * incoming * cos_theta / p);
 }
 
 
 
 bool ClosestIntersection(vec3 start, vec3 dir, const vector<Triangle>& triangles, Intersection& closestIntersection) {
 	float m = std::numeric_limits<float>::max();
+	const float epsilon = 1e-8;
 	float t, u, v;
-	vec3 v0, v1, v2, e1, e2, b, x;
-	mat3 A(float(-1) * dir, e1, e2);
+	vec3 v0, v1, v2, e1, e2, s, x;
+	bool found = false;
 	for (int i = 0; i < triangles.size(); i++) {
 		// loop through triangles and solve interesction system
 		v0 = triangles[i].v0;
@@ -250,27 +253,37 @@ bool ClosestIntersection(vec3 start, vec3 dir, const vector<Triangle>& triangles
 		v2 = triangles[i].v2;
 		e1 = v1 - v0;
 		e2 = v2 - v0;
-		b = start - v0;
-		A = mat3(-dir, e1, e2);
-		x = glm::inverse(A) * b;
-		t = x[0];
-		u = x[1];
-		v = x[2];
-		// check if ray intersects triangle
-		if (u >= 0 && v >= 0 && u + v <= 1 && t >= 0) {
-
-			vec3 intPoint = v0 + u * e1 + v * e2;
-			float dist = glm::distance(intPoint, start);
-			if (dist < m) {
-				m = dist;
-				closestIntersection = Intersection{ intPoint, dist, i };
+		vec3 h = glm::cross(dir, e2);
+		float a = glm::dot(e1, h);
+		if (fabs(a)  < epsilon) {
+			continue; //ray is parallell to triangle
+		}
+		float f = 1.0 / a;
+		s = start - v0;
+		u = f * glm::dot(s, h);
+		if (u < 0.0f || u > 1) {
+			continue;
+		}
+		vec3 q = glm::cross(s, e1);
+		float v = f * glm::dot(dir, q);
+		if (v < 0.0f || u + v > 1.0) {
+			continue;
+		}
+		t = f * glm::dot(e2, q);
+		if (t > epsilon) {
+			//cout << "FOUND INTERSECTION" << endl;
+			found = true;
+			vec3 pos = start + t * dir;
+			float distance = glm::distance(start, pos);
+			if (distance < m) {
+				m = distance;
+				closestIntersection.distance = distance;
+				closestIntersection.triangleIndex = i;
+				closestIntersection.position = pos;
 			}
 		}
 	}
-	if (m < std::numeric_limits<float>::max()) {
-		return true;
-	}
-	return false;
+	return found;
 }
 
 vec3 DirectLight(Intersection& i) {
