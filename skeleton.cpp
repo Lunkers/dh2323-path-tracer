@@ -45,7 +45,7 @@ vec3 indirectLight = 0.5f * vec3(1, 1, 1);
 
 
 int maxCount = 3;
-int numSamples = 200;
+int numSamples = 4096;
 
 
 float rendered[SCREEN_HEIGHT][SCREEN_WIDTH][3];
